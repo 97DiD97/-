@@ -40,6 +40,7 @@ import java.util.logging.Level;
 public final class EyeManager {
 
     private static final String TAG = "eyesky_eye";
+    private static final String HOLDER_TAG = "eyesky_holder";
 
     private enum State { SKY, DESCEND, WATCH, RETURN }
 
@@ -145,7 +146,7 @@ public final class EyeManager {
     private void removeAllEyes() {
         for (World w : Bukkit.getWorlds()) {
             for (ItemDisplay d : w.getEntitiesByClass(ItemDisplay.class)) {
-                if (d.getScoreboardTags().contains(TAG)) d.remove();
+                if (d.getScoreboardTags().contains(TAG) || d.getScoreboardTags().contains(HOLDER_TAG)) d.remove();
             }
         }
     }
@@ -154,6 +155,13 @@ public final class EyeManager {
         if (display != null) display.remove();
         display = null;
         shown = null;
+    }
+
+    /** Удаляет любые лишние глаза с нашим тегом (кроме текущего). */
+    private void removeDuplicateEyes() {
+        for (ItemDisplay d : world.getEntitiesByClass(ItemDisplay.class)) {
+            if (d != display && d.getScoreboardTags().contains(TAG)) d.remove();
+        }
     }
 
     private void removeHolders() {
@@ -181,7 +189,7 @@ public final class EyeManager {
                 d.setPersistent(false);
                 d.setInvulnerable(true);
                 d.setGravity(false);
-                d.addScoreboardTag(TAG);
+                d.addScoreboardTag(HOLDER_TAG);
             }));
         }
     }
@@ -214,7 +222,10 @@ public final class EyeManager {
         if (players.isEmpty()) return;      // никого нет - глаз "спит"
 
         tick++;
-        if (tick % 100 == 1) ensureHolders();
+        if (tick % 100 == 1) {
+            ensureHolders();
+            removeDuplicateEyes();
+        }
         Player anchor = pickAnchor(players);
 
         if (pos == null || !world.isChunkLoaded(floor(pos.getX()) >> 4, floor(pos.getZ()) >> 4)) {
